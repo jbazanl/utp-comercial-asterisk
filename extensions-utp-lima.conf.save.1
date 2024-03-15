@@ -1,0 +1,231 @@
+
+	;
+#include extensions.salidas.conf
+#include extensions.IN-IDAT.conf
+#include extensions.IN-CASE.conf
+#include extensions.CALLERID.conf
+;
+
+[AST-LIMA]
+include=>DID-IDAT
+include=>DID-CASE
+include=>DID-UTP
+
+;;entrantes ;;
+
+ exten => _2100,1,NoOp("Llamada Inbound CASE - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _2100,n,Set(DNIS=${EXTEN})
+ exten => _2100,n,Set(ANI=${CALLERID(all)})
+ exten => _2100,n,Set(ALEATORIO=${RAND(1,2)})
+ ;; change
+ exten => _2100,n,Set(GROUP()=ServerOptical)
+ exten => _2100,n,NoOp( Total de lamadas concurrentes: ${GROUP_COUNT(ServerOptical)})
+ exten => _2100,n,GotoIf($[${GROUP_COUNT(ServerOptical)} > 691]?cloud)
+ ;;
+ exten => _2100,n,Dial(SIP/${EXTEN}@EDGE-LIMA02,80,Tgr)
+ exten => _2100,n,Dial(SIP/${EXTEN}@EDGE-LIMA01,80,Tgr)
+ exten => _2100,n,Hangup()
+ exten => _2100,n(cloud),Set(CALLERID(name)=UTP_ADMIPREUTP_LIMA_IVR)
+ exten => _2100,n,Dial(SIP/${EXTEN}@EDGE-CLOUD,80,Tgr)
+
+
+
+
+[from-EDGE]
+ include => from-PSTN
+
+ exten => _+519XXXXXXXX,1,NoOp("LLamada Outbound - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+519XXXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+519XXXXXXXX,n,Set(ANI=${CALLERID(all)})
+ ;exten => _+519XXXXXXXX,n,Dial(SIP/${EXTEN:3}@TK-OUT-GW-LIMA,80,gr)
+ exten => _+519XXXXXXXX,n,Hangup()
+
+ exten => _+511XXXXXXX,1,NoOp("LLamada Outbound - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+511XXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+511XXXXXXX,n,Set(ANI=${CALLERID(all)})
+ ;exten => _+511XXXXXXX,n,Dial(SIP/${EXTEN}@TK-OUT-GW-LIMA,80,gr)
+ exten => _+511XXXXXXX,n,Hangup()
+;################################################################################################################################
+;############################################## SALIDA DE LLAMADAS MARCADOR (PREDICTIVO) ########################################
+;################################################################################################################################
+[from-EDGE-LIMA]
+
+ include=>CHIMBOTE
+ include=>PIURA
+ include=>ICA
+ include=>CHICLAYO
+ include=>HUANCAYO
+
+;######### llamadas a moviles ##############
+ exten => _+519XXXXXXXX,1,NoOp("LLamada Outbound Movil - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+519XXXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+519XXXXXXXX,n,Set(ANI=${CALLERID(all)})
+ exten => _+519XXXXXXXX,n,Set(GROUP()=ServerOptical)
+ exten => _+519XXXXXXXX,n,NoOP( Total de llamadas concurrentes: ${GROUP_COUNT(ServerOptical)})
+;
+ ;exten => _+519XXXXXXXX,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+;; enrutamiento opcional para enviar llamadas a optical
+ ;exten => _+519XXXXXXXX,n,Dial(SIP/33${EXTEN:1}@AST-LIMA-PROD)
+ exten => _+519XXXXXXXX,n,goto(cambio_proveedor,${EXTEN},1)
+;; 
+ exten => _+519XXXXXXXX,n,Hangup()
+
+;########### llamadas a fijos ################
+
+
+ exten => _+511XXXXXXX,1,NoOp("LLamada Outbound Fijo - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+511XXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+511XXXXXXX,n,Set(ANI=${CALLERID(all)})
+;;change
+ exten => _+511XXXXXXX,n,Set(GROUP()=ServerOptical)
+ exten => _+511XXXXXXX,n,NoOP( Total de llamadas concurrentes: ${GROUP_COUNT(ServerOptical)})
+;;
+ ;exten => _+511XXXXXXX,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+ 
+;; enrutamiento opcional para enviar llamadas a optical
+
+ ;exten => _+511XXXXXXX,n,Dial(SIP/33${EXTEN:1}@AST-LIMA-PROD)
+ exten => _+511XXXXXXX,n,goto(cambio_proveedor,${EXTEN},1)
+;;
+
+ exten => _+511XXXXXXX,n,Hangup()
+
+
+;;prefijo 2878 celulares
+ exten => _+2078519XXXXXXXX,1,NoOp("LLamada Outbound Movil - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+2078519XXXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+2078519XXXXXXXX,n,Set(ANI=${CALLERID(all)})
+ ;exten => _+2078519XXXXXXXX,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+ exten => _+2078519XXXXXXXX,n,goto(cambio_proveedor,${EXTEN},1)
+ exten => _+2078519XXXXXXXX,n,Hangup()
+
+;;´prefijo 2878 fijos
+
+ exten => _+2078511XXXXXXX,1,NoOp("LLamada Outbound Fijo - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _+2078511XXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _+2078511XXXXXXX,n,Set(ANI=${CALLERID(all)})
+ ;exten => _+2078511XXXXXXX,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+ exten => _+2078511XXXXXXX,n,,goto(cambio_proveedor,${EXTEN},1)
+ exten => _+2078511XXXXXXX,n,Hangup()
+
+
+[cambio_proveedor]
+ exten => _+51.,1,NoOp(switch proveedor)
+ ;exten => _+51.,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+ exten => _+51.,n,Dial(SIP/33${EXTEN:1}@AST-LIMA-PROD)
+ exten => _+51.,n,Hangup()
+
+
+ exten => _+2078.,1,NoOp(switch proveedor)
+ ;exten => _+2078.,n,Dial(SIP/${EXTEN:1}@OPTICAL,80,g)
+ exten => _+2078.,n,Dial(SIP/33${EXTEN:5}@AST-LIMA-PROD)
+ exten => _+2078.,n,Hangup()
+
+
+
+
+ 
+
+
+
+
+;##################################################################################################################################
+;##################################################################################################################################
+
+
+[from-EDGE-LIMA-OUT]
+ exten => _+X.,1,NoOp("LLamada Outbound Movil - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ ;exten => _+X.,n,GosubIf($["${CALLERID(num)}" = "+5113159610"]?from-EDGE-LIMA,${EXTEN},1)
+ exten => _+X.,n,GosubIf($["${CALLERID(num)}" = "+5113159610"]?Valida-Extension,${EXTEN},1) 
+ exten => _+X.,n,GosubIf($["${CALLERID(num)}" = "+51"]?Set-CallerID,${EXTEN},1)
+ exten => _+X.,n,GosubIf($["${CALLERID(num)}" >= "21500"]?Valida-Extension,${EXTEN},1)
+ exten => _+X.,n,Goto(Set-CallerID,${EXTEN},1)
+ exten => _+X.,n,hangup()
+
+[Set-CallerID]
+ exten => _+X.,1,Gosub(Establece-CALLERID-UTP,s,1)
+ exten => _+X.,n,Set(CALLERID(all)=${PRIMARY_CALLERID})
+ exten => _+X.,n,Goto(from-EDGE-LIMA,${EXTEN},1)
+ exten => _+X.,n,Hangup()
+
+[Set-CallerID-Agent]
+ exten => _+X.,1,Set(CALLERID(all)=5113159610)
+ exten => _+X.,n,Goto(from-EDGE-LIMA,${EXTEN},1)
+ exten => _+X.,n,Hangup()
+
+[Valida-Extension]
+ 
+ exten => _+X.,1,NoOp(valida did ${EXTEN})
+ ;exten => _+X.,n,GotoIf($["${EXTEN:3}" = "982562654"]?test)
+ exten => _+X.,n,GosubIf($["${CALLERID(num)}" <= "21599"]?Set-CallerID-Agent,+2078${EXTEN:1},1)
+ exten => _+X.,n,Goto(Set-CallerID,${EXTEN},1)
+ exten => _+X.,n,Hangup()
+ ;exten => _+X.,n(test),Dial(SIP/207851982562654@OPTICAL,80,gr)
+
+ ;exten => _+X.,1,GosubIf($["${CALLERID(num)}" <= "21599"]?Set-CallerID-Agent,2078${EXTEN},1)
+ ;exten => _+X.,n,Goto(Set-CallerID,2078${EXTEN},1)
+ ;exten => _+X.,n,Hangup()
+
+[from-EDGE-PROV]
+include=>CELULAR
+include=>LIMA
+
+[from-CHICLAYO]
+include=>CELULAR
+include=>CHICLAYO
+
+[from-HUANCAYO]
+include=>CELULAR
+include=>HUANCAYO
+
+[from-CHIMBOTE]
+include=>CELULAR
+include=>CHIMBOTE
+
+[from-ICA]
+include=>CELULAR
+include=>ICA
+
+[from-PIURA]
+include=>CELULAR
+include=>PIURA
+
+[from-TRUJILLO]
+include=>CELULAR
+include=>CHIMBOTE
+
+[ANEXOS]
+ include=>CELULAR
+ include=>DID-IDAT
+ include=>DID-CASE
+ include=>CHIMBOTE
+ include=>PIURA
+ include=>ICA
+ include=>CHICLAYO
+ include=>HUANCAYO
+
+ exten => _511XXXXXXX,1,NoOp("LLamada Outbound - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _511XXXXXXX,n,Set(DNIS=${EXTEN})
+ exten => _511XXXXXXX,n,Set(ANI=${CALLERID(all)})
+ exten => _511XXXXXXX,n,Dial(SIP/${EXTEN}@OPTICAL,80,g)
+ exten => _511XXXXXXX,n,Hangup()
+
+ exten => _2200,1,NoOp("Llamada Inbound - ANI:${CALLERID(all)} - DNIS:${EXTEN}")
+ exten => _2200,n,Set(DNIS=${EXTEN})
+ exten => _2200,n,Set(ANI=${CALLERID(all)})
+ exten => _2200,n,Dial(SIP/${EXTEN}@EDGE-IDAT,80,gr)
+ exten => _2200,n,Hangup()
+
+
+[from-EDGE-IDAT]
+include=>CELULAR
+include=>LIMA
+
+[from-EDGE-CASE]
+include=>CELULAR
+include=>LIMA
+
+[AST-AREQUIPA]
+include=>CELULAR
+
+
